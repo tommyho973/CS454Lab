@@ -18,6 +18,8 @@
 #include <fcntl.h>
 #include "pc_crc16.h"
 #include "lab3.h"
+#include "lab3_troll.h"
+#include "types.h"
 
 #define GREETING_STR						\
     "CS454/654 - Lab 3 Server\n"				\
@@ -96,6 +98,39 @@ int main(int argc, char* argv[])
 	//
  	// WRITE ME: Set up the serial port parameters and data format
 	//
+//    CLEARBIT(U2MODEbits.UARTEN);
+//    IEC1bits.U2RXIE= 0;
+//    IEC1bits.U2TXIE = 0;
+//    IFS1bits.U2RXIF = 0;
+//    IFS1bits.U2TXIF= 0;
+//    TRISFbits.TRISF2 = 1;
+//    TRISFbits.TRISF3 = 0;
+//    U2MODEbits.BRGH = 0;
+//    U2BRG = (uint32_t)800000/9600 -1;
+//    U2MODE = 0;
+//    U2MODEbits.RTSMD = 0;
+//    U2MODEbits.UEN = 0;
+//    U2MODE |= 0x00;
+//    U2MODEbits.UARTEN = 1;
+//    U2STA = 0;
+//    U2STAbits.UTXEN = 0;
+    CLEARBIT(U1MODEbits.UARTEN);
+    IEC0bits.U1RXIE= 0;
+    IEC0bits.U1TXIE = 0;
+    IFS0bits.U1RXIF = 0;
+    IFS0bits.U1TXIF= 0;
+    TRISFbits.TRISF2 = 1;
+    TRISFbits.TRISF3 = 0;
+    U1MODEbits.BRGH = 0;
+    U1BRG = (uint32_t)800000/9600 -1;
+    U1MODE = 0;
+    U1MODEbits.RTSMD = 0;
+    U1MODEbits.UEN = 0;
+    U1MODE |= 0x00;
+    U1MODEbits.UARTEN = 1;
+    U1STA = 0;
+    U1STAbits.UTXEN = 0;
+    
 
 	while(1)
 	{
@@ -103,11 +138,21 @@ int main(int argc, char* argv[])
 		//
 		// WRITE ME: Read a line of input (Hint: use fgetc(stdin) to read each character)
 		//
+        char phrase[100];  // Assuming maximum word length is 99 characters
+        int i = 0;
+        int c;
+        while ((c = fgetc(stdin)) != EOF && c != '\n' && i < 999) {
+        phrase[i++] = (char)c;
+        
+        }   
+        phrase[i] = '\0';  // Null-terminate the string
+        
 
 		if (strcmp(str, "quit") == 0) break;
 
 		//
 		// WRITE ME: Compute crc (only lowest 16 bits are returned)
+        uint16_t crc = pc_crc16(phrase, i);
 		//
 	
 		while (!ack)
@@ -118,6 +163,9 @@ int main(int argc, char* argv[])
 			// 
 			// WRITE ME: Send message
 			//
+            while(U2STAbits.UTXBF);
+            U2TXREG = crc;
+            while(!U2STAbits.TRMT);
 
 		
 			printf("Message sent, waiting for ack... ");
@@ -126,9 +174,11 @@ int main(int argc, char* argv[])
 			//
 			// WRITE ME: Wait for MSG_ACK or MSG_NACK
 			//
+            while(MSG_ACK == 0){
 
 
 			printf("%s\n", ack ? "ACK" : "NACK, resending");
+            }
 		}
 		printf("\n");
 	}
@@ -137,7 +187,35 @@ int main(int argc, char* argv[])
 	//
 	// WRITE ME: Reset the serial port parameters
 	//
-	
+//    CLEARBIT(U2MODEbits.UARTEN);
+//    IEC1bits.U2RXIE= 0;
+//    IEC1bits.U2TXIE = 0;
+//    IFS1bits.U2RXIF = 0;
+//    IFS1bits.U2TXIF= 0;
+//    TRISFbits.TRISF2 = 1;
+//    TRISFbits.TRISF3 = 0;
+//    U2MODEbits.BRGH = 0;
+//    U2BRG = (uint32_t)800000/9600 -1;
+//    U2MODE = 0;
+//    U2MODEbits.RTSMD = 0;
+//    U2MODEbits.UEN = 0;
+//    U2MODE |= 0x00;
+//    U2MODEbits.UARTEN = 1;
+//    U2STA = 0;
+//    U2STAbits.UTXEN = 0;
+	CLEARBIT(U1MODEbits.UARTEN);
+    IEC0bits.U1RXIE= 0;
+    IEC0bits.U1TXIE = 0;
+    IFS0bits.U1RXIF = 0;
+    IFS0bits.U1TXIF= 0;
+    TRISFbits.TRISF2 = 1;
+    TRISFbits.TRISF3 = 0;
+    U1MODEbits.BRGH = 0;
+    U1BRG = (uint32_t)800000/9600 -1;
+    U1MODE = 0;
+    U1MODEbits.RTSMD = 0;
+    U1MODEbits.UEN = 0;
+    U1MODE |= 0x00;
 	// Close the serial port
 	close(ifd);
 	
