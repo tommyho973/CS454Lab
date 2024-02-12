@@ -20,7 +20,7 @@
 #include "pc_crc16.h"
 #include "lab3.h"
 #include "lab3_troll.h"
-#include "types.h"
+
 
 
 #define GREETING_STR						\
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
         //uint16_t crc = pc_crc16(phrase, i);
 		//
         
-        uint16_t crc = pc_crc16(str, strlen(str));
+        int crc = pc_crc16(str, strlen(str));
         
         int ack = 1;
         int attempts = 0;
