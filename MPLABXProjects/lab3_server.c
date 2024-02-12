@@ -117,31 +117,36 @@ int main(int argc, char* argv[])
 //    U2STA = 0;
 //    U2STAbits.UTXEN = 0;
 
-    CLEARBIT(U1MODEbits.UARTEN);
+    // CLEARBIT(U1MODEbits.UARTEN);
     
-    IEC0bits.U1RXIE= 0;
-    IEC0bits.U1TXIE = 0;
+    // IEC0bits.U1RXIE= 0;
+    // IEC0bits.U1TXIE = 0;
     
-    IFS0bits.U1RXIF = 0;
-    IFS0bits.U1TXIF= 0;
+    // IFS0bits.U1RXIF = 0;
+    // IFS0bits.U1TXIF= 0;
     
-    TRISFbits.TRISF2 = 1;
-    TRISFbits.TRISF3 = 0;
+    // TRISFbits.TRISF2 = 1;
+    // TRISFbits.TRISF3 = 0;
     
-    U1MODEbits.BRGH = 0;
-    U1BRG = (uint32_t)800000/9600 -1;
+    // U1MODEbits.BRGH = 0;
+    // U1BRG = (uint32_t)800000/9600 -1;
     
-    U1MODE = 0;
-    U1MODEbits.RTSMD = 0;
-    U1MODEbits.UEN = 0;
-    U1MODE |= 0x00;
+    // U1MODE = 0;
+    // U1MODEbits.RTSMD = 0;
+    // U1MODEbits.UEN = 0;
+    // U1MODE |= 0x00;
     
-    U1MODEbits.UARTEN = 1;
-    U1STA = 0;
-    U1STAbits.UTXEN = 0;
+    // U1MODEbits.UARTEN = 1;
+    // U1STA = 0;
+    // U1STAbits.UTXEN = 0;
     
-    tios.
-    
+    tcgetattr(ifd, &oldtio);
+	tio.c_cflag 	= B9600 | CS8 | CLOCAL |CREAD;
+	tio.c_iflag 	= 0;
+	tio.c_oflag 	= 0;
+	tio.c_lflag 	= 0;
+	tcflush(ifd, TCIFLUSH);
+	tcsetattr(ifd, TCSANOW, &tio);
 
 	while(1)
 	{
@@ -157,7 +162,6 @@ int main(int argc, char* argv[])
         }   
         phrase[i] = '\0';
         
-//        int i = 0;
 //        while ((str[i] = fgetc(stdin)) != '\n' && i < MSG_BYTES_MSG - 1) {
 //            i++
 //        }   
@@ -184,11 +188,11 @@ int main(int argc, char* argv[])
 			// 
 			// WRITE ME: Send message
 			//
-//            while(U1STAbits.UTXBF);
-//            U1TXREG = crc;
-//            while(!U1STAbits.TRMT);
+        //    while(U1STAbits.UTXBF);
+        //    U1TXREG = crc;
+        //    while(!U1STAbits.TRMT);
             
-            write()
+            write(ofd, str, strlen(str))
 
 		
 			printf("Message sent, waiting for ack... ");
@@ -210,6 +214,9 @@ int main(int argc, char* argv[])
 	//
 	// WRITE ME: Reset the serial port parameters
 	//
+	tcflush(ifd, TCIFLUSH);
+	tcsetattr(ifd, TCSANOW, &oldtio);
+
 //    CLEARBIT(U2MODEbits.UARTEN);
 //    IEC1bits.U2RXIE= 0;
 //    IEC1bits.U2TXIE = 0;
@@ -227,28 +234,29 @@ int main(int argc, char* argv[])
 //    U2STA = 0;
 //    U2STAbits.UTXEN = 0;
     
-    CLEARBIT(U1MODEbits.UARTEN);
+    // CLEARBIT(U1MODEbits.UARTEN);
     
-    IEC0bits.U1RXIE= 0;
-    IEC0bits.U1TXIE = 0;
+    // IEC0bits.U1RXIE= 0;
+    // IEC0bits.U1TXIE = 0;
     
-    IFS0bits.U1RXIF = 0;
-    IFS0bits.U1TXIF= 0;
+    // IFS0bits.U1RXIF = 0;
+    // IFS0bits.U1TXIF= 0;
     
-    TRISFbits.TRISF2 = 1;
-    TRISFbits.TRISF3 = 0;
+    // TRISFbits.TRISF2 = 1;
+    // TRISFbits.TRISF3 = 0;
     
-    U1MODEbits.BRGH = 0;
-    U1BRG = (uint32_t)800000/9600 -1;
+    // U1MODEbits.BRGH = 0;
+    // U1BRG = (uint32_t)800000/9600 -1;
     
-    U1MODE = 0;
-    U1MODEbits.RTSMD = 0;
-    U1MODEbits.UEN = 0;
-    U1MODE |= 0x00;
+    // U1MODE = 0;
+    // U1MODEbits.RTSMD = 0;
+    // U1MODEbits.UEN = 0;
+    // U1MODE |= 0x00;
+
+
     
 	// Close the serial port
 	close(ifd);
 	
 	return EXIT_SUCCESS;
 }
-
