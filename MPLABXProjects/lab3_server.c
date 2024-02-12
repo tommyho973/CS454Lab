@@ -100,45 +100,6 @@ int main(int argc, char* argv[])
 	//
  	// WRITE ME: Set up the serial port parameters and data format
 	//
-//    CLEARBIT(U2MODEbits.UARTEN);
-//    IEC1bits.U2RXIE= 0;
-//    IEC1bits.U2TXIE = 0;
-//    IFS1bits.U2RXIF = 0;
-//    IFS1bits.U2TXIF= 0;
-//    TRISFbits.TRISF2 = 1;
-//    TRISFbits.TRISF3 = 0;
-//    U2MODEbits.BRGH = 0;
-//    U2BRG = (uint32_t)800000/9600 -1;
-//    U2MODE = 0;
-//    U2MODEbits.RTSMD = 0;
-//    U2MODEbits.UEN = 0;
-//    U2MODE |= 0x00;
-//    U2MODEbits.UARTEN = 1;
-//    U2STA = 0;
-//    U2STAbits.UTXEN = 0;
-
-    // CLEARBIT(U1MODEbits.UARTEN);
-    
-    // IEC0bits.U1RXIE= 0;
-    // IEC0bits.U1TXIE = 0;
-    
-    // IFS0bits.U1RXIF = 0;
-    // IFS0bits.U1TXIF= 0;
-    
-    // TRISFbits.TRISF2 = 1;
-    // TRISFbits.TRISF3 = 0;
-    
-    // U1MODEbits.BRGH = 0;
-    // U1BRG = (uint32_t)800000/9600 -1;
-    
-    // U1MODE = 0;
-    // U1MODEbits.RTSMD = 0;
-    // U1MODEbits.UEN = 0;
-    // U1MODE |= 0x00;
-    
-    // U1MODEbits.UARTEN = 1;
-    // U1STA = 0;
-    // U1STAbits.UTXEN = 0;
     
     tcgetattr(ifd, &oldtio);
 	tio.c_cflag 	= B9600 | CS8 | CLOCAL |CREAD;
@@ -154,28 +115,28 @@ int main(int argc, char* argv[])
 		//
 		// WRITE ME: Read a line of input (Hint: use fgetc(stdin) to read each character)
 		//
-        char phrase[100];
-        int i = 0;
-        int c;
-        while ((c = fgetc(stdin)) != EOF && c != '\n' && i < 999) {
-            phrase[i++] = (char)c;
-        }   
-        phrase[i] = '\0';
-        
-//        while ((str[i] = fgetc(stdin)) != '\n' && i < MSG_BYTES_MSG - 1) {
-//            i++
+//        char phrase[100];
+//        int i = 0;
+//        int c;
+//        while ((c = fgetc(stdin)) != EOF && c != '\n' && i < 999) {
+//            phrase[i++] = (char)c;
 //        }   
-//        str[i] = '\0';
+//        phrase[i] = '\0';
+        
+        while ((str[i] = fgetc(stdin)) != '\n' && i < MSG_BYTES_MSG - 1) {
+            i++;
+        }   
+        str[i] = '\0';
         
 
 		if (strcmp(str, "quit") == 0) break;
 
 		//
 		// WRITE ME: Compute crc (only lowest 16 bits are returned)
-        uint16_t crc = pc_crc16(phrase, i);
+        //uint16_t crc = pc_crc16(phrase, i);
 		//
         
-        //uint16_t crc = pc_crc16(str, strlen(str))
+        uint16_t crc = pc_crc16(str, strlen(str));
         
         int ack = 1;
         int attempts = 0;
@@ -188,11 +149,11 @@ int main(int argc, char* argv[])
 			// 
 			// WRITE ME: Send message
 			//
-        //    while(U1STAbits.UTXBF);
-        //    U1TXREG = crc;
-        //    while(!U1STAbits.TRMT);
+//            while(U1STAbits.UTXBF);
+//            U1TXREG = crc;
+//            while(!U1STAbits.TRMT);
             
-            write(ofd, str, strlen(str))
+            write(ofd, str, strlen(str));
 
 		
 			printf("Message sent, waiting for ack... ");
@@ -216,44 +177,6 @@ int main(int argc, char* argv[])
 	//
 	tcflush(ifd, TCIFLUSH);
 	tcsetattr(ifd, TCSANOW, &oldtio);
-
-//    CLEARBIT(U2MODEbits.UARTEN);
-//    IEC1bits.U2RXIE= 0;
-//    IEC1bits.U2TXIE = 0;
-//    IFS1bits.U2RXIF = 0;
-//    IFS1bits.U2TXIF= 0;
-//    TRISFbits.TRISF2 = 1;
-//    TRISFbits.TRISF3 = 0;
-//    U2MODEbits.BRGH = 0;
-//    U2BRG = (uint32_t)800000/9600 -1;
-//    U2MODE = 0;
-//    U2MODEbits.RTSMD = 0;
-//    U2MODEbits.UEN = 0;
-//    U2MODE |= 0x00;
-//    U2MODEbits.UARTEN = 1;
-//    U2STA = 0;
-//    U2STAbits.UTXEN = 0;
-    
-    // CLEARBIT(U1MODEbits.UARTEN);
-    
-    // IEC0bits.U1RXIE= 0;
-    // IEC0bits.U1TXIE = 0;
-    
-    // IFS0bits.U1RXIF = 0;
-    // IFS0bits.U1TXIF= 0;
-    
-    // TRISFbits.TRISF2 = 1;
-    // TRISFbits.TRISF3 = 0;
-    
-    // U1MODEbits.BRGH = 0;
-    // U1BRG = (uint32_t)800000/9600 -1;
-    
-    // U1MODE = 0;
-    // U1MODEbits.RTSMD = 0;
-    // U1MODEbits.UEN = 0;
-    // U1MODE |= 0x00;
-
-
     
 	// Close the serial port
 	close(ifd);
