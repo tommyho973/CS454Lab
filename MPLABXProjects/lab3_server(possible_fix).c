@@ -129,10 +129,12 @@ int main(int argc, char* argv[])
 //            phrase[i++] = (char)c;
 //        }   
 //        phrase[i] = '\0';
-        for(i = 0; i < sizeof(str) - 1 && (((ch = fgetc(stdin))!= EOF) && (ch != "\n")); increment(&i)){
-			str[i] = ch;
+		char c;
+		i = 0;
+        while((c = fgetc(stdin))!= EOF&& c!= '\n'){
+			str[i++] = c;
 		}
-		str[i] = "\0";
+		str[i] = '\0';
         
 
 		if (strcmp(str, "quit") == 0) break;
@@ -146,6 +148,17 @@ int main(int argc, char* argv[])
         printf("CRC: %d\n",crc);
         int ack = 1;
         int attempts = 0;
+		int N = strlen(str);
+		char msg[N + 4];
+		msg[0] = 0x00;
+		msg[1] = crc / 10;
+		msg[2] = crc % 10;
+		msg[3] = N;
+		int j = 4;
+		for (int j = 4; j < MSG_BYTES_MSG && j < N + 4; ++j) {
+    	msg[j] = str[j - 4];
+		}
+
 	
 		while (!ack)
 		{
@@ -159,7 +172,7 @@ int main(int argc, char* argv[])
 //            U1TXREG = crc;
 //            while(!U1STAbits.TRMT);
             
-            write(ofd, str, strlen(str));
+            write(ofd, msg, N+4);
 
 		
 			printf("Message sent, waiting for ack... ");
