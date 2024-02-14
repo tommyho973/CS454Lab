@@ -9,7 +9,6 @@
 /*                                                  */
 /****************************************************/
 
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,9 +18,6 @@
 #include <fcntl.h>
 #include "pc_crc16.h"
 #include "lab3.h"
-#include "lab3_troll.h"
-
-
 
 #define GREETING_STR						\
     "CS454/654 - Lab 3 Server\n"				\
@@ -100,7 +96,6 @@ int main(int argc, char* argv[])
 	//
  	// WRITE ME: Set up the serial port parameters and data format
 	//
-    
     tcgetattr(ifd, &oldtio);
 	tio.c_cflag 	= B9600 | CS8 | CLOCAL |CREAD;
 	tio.c_iflag 	= 0;
@@ -115,32 +110,35 @@ int main(int argc, char* argv[])
 		//
 		// WRITE ME: Read a line of input (Hint: use fgetc(stdin) to read each character)
 		//
-//        char phrase[100];
-//        int i = 0;
-//        int c;
-//        while ((c = fgetc(stdin)) != EOF && c != '\n' && i < 999) {
-//            phrase[i++] = (char)c;
-//        }   
-//        phrase[i] = '\0';
-        
-        while ((str[i] = fgetc(stdin)) != '\n' && i < MSG_BYTES_MSG - 1) {
-            i++;
-        }   
+        char c;
+        i = 0;
+        while((c = fgetc(stdin))!=EOF&& c!= '\n'){
+            str[i++] = c;
+        }
         str[i] = '\0';
         
-
 		if (strcmp(str, "quit") == 0) break;
-
+        int N = strlen(str);
 		//
 		// WRITE ME: Compute crc (only lowest 16 bits are returned)
-        //uint16_t crc = pc_crc16(phrase, i);
 		//
+        int crc = pc_crc16(str, N);
         
-        int crc = pc_crc16(str, strlen(str));
-        
-        int ack = 1;
+        printf("CRC: %x\n", crc);
+        int ack = 0;
         int attempts = 0;
-	
+        
+		char msg[N + 4];
+		msg[0] = 0x00;
+		msg[1] = (crc>>8)& 0xFF;
+		msg[2] = crc & 0xFF;
+		msg[3] = N;
+		int j;
+		for (j=0;j<N;++j){
+            msg[j+4]=str[j];
+            printf("%c",msg[j+4]);
+        }
+        printf("\n");
 		while (!ack)
 		{
 			printf("Sending (attempt %d)...\n", ++attempts);
@@ -149,11 +147,7 @@ int main(int argc, char* argv[])
 			// 
 			// WRITE ME: Send message
 			//
-//            while(U1STAbits.UTXBF);
-//            U1TXREG = crc;
-//            while(!U1STAbits.TRMT);
-            
-            write(ofd, str, strlen(str));
+            write(ofd, msg, N+4);
 
 		
 			printf("Message sent, waiting for ack... ");
@@ -162,11 +156,10 @@ int main(int argc, char* argv[])
 			//
 			// WRITE ME: Wait for MSG_ACK or MSG_NACK
 			//
-            while(MSG_ACK == 0){
 
-
+            read(ifd, &ack, sizeof(ack));
+            
 			printf("%s\n", ack ? "ACK" : "NACK, resending");
-            }
 		}
 		printf("\n");
 	}
@@ -177,9 +170,9 @@ int main(int argc, char* argv[])
 	//
 	tcflush(ifd, TCIFLUSH);
 	tcsetattr(ifd, TCSANOW, &oldtio);
-    
 	// Close the serial port
 	close(ifd);
 	
 	return EXIT_SUCCESS;
 }
+
