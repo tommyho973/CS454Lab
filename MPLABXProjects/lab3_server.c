@@ -133,12 +133,13 @@ int main(int argc, char* argv[])
 		msg[1] = (crc>>8)& 0xFF;
 		msg[2] = crc & 0xFF;
 		msg[3] = N;
+        
 		int j;
 		for (j=0;j<N;++j){
             msg[j+4]=str[j];
-            printf("%c",msg[j+4]);
+//            printf("%c",msg[j+4]);
         }
-        printf("\n");
+//        printf("\n");
 		while (!ack)
 		{
 			printf("Sending (attempt %d)...\n", ++attempts);
