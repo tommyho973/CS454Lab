@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
 	//
  	// WRITE ME: Set up the serial port parameters and data format
 	//
-    tcgetattr(ifd, &oldtio);
+	tcgetattr(ifd, &oldtio);
 	tio.c_cflag 	= B9600 | CS8 | CLOCAL |CREAD;
 	tio.c_iflag 	= 0;
 	tio.c_oflag 	= 0;
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
         int crc = pc_crc16(str, N);
         
         printf("CRC: %x\n", crc);
-        int ack = 0;
+        int ack= -1;
         int attempts = 0;
         
 		char msg[N + 4];
@@ -140,10 +140,12 @@ int main(int argc, char* argv[])
 //            printf("%c",msg[j+4]);
         }
 //        printf("\n");
-		while (!ack)
+		while (ack!=1)
 		{
 			printf("Sending (attempt %d)...\n", ++attempts);
-
+			
+			char ackByte;
+		   
 			
 			// 
 			// WRITE ME: Send message
@@ -152,13 +154,23 @@ int main(int argc, char* argv[])
 
 		
 			printf("Message sent, waiting for ack... ");
-
+			
 			
 			//
 			// WRITE ME: Wait for MSG_ACK or MSG_NACK
 			//
-
-            read(ifd, &ack, sizeof(ack));
+			ssize_t bytesRead = read(ifd,&ackByte,1);
+			while(bytesRead!= 1){
+			  bytesRead = read(ifd,&ackByte,1);
+			}
+			if(ackByte == 1){
+			  ack = MSG_ACK;
+			}
+			else{
+			  ack = MSG_NACK;
+			}
+	      //	      printf("YOOYOYOYOOY");
+         
             
 			printf("%s\n", ack ? "ACK" : "NACK, resending");
 		}
