@@ -42,7 +42,7 @@ char message[MSG_BYTES_MSG];
 
 void __attribute__((__interrupt__,no_auto_psv)) _T1Interrupt(void){
     failed_sends++;
-    //    uart2_send_8(NACK); // ASKKSKSKSKSKSKSKKSKKSKS
+    //    uart2_send_8(NACK);
     CLEARBIT(IFS0bits.T1IF);
     timer_expired = 1;
     
@@ -51,103 +51,91 @@ void __attribute__((__interrupt__,no_auto_psv)) _T1Interrupt(void){
 int main(void)
 {	
     __C30_UART=1;	
-	lcd_initialize();
-    
+	lcd_initialize();char 
 	lcd_clear();
 	lcd_locate(0,0);
-	lcd_printf("Hello World4!");	
-	/* Do nothing */
-	while(1){
-		
-	}
+
 	/* Q: What is my purpose? */
 	/* A: You pass butter. */
 	/* Q: Oh. My. God. */
     
-//    uint16_t message_length = MSG_MAX_LEN;
-    
-//    uart2_init(BAUD_9600);
-//    
-//    
-//    while(1){
-//        timer_expired = 0;
-//        int i = 0;
-    
-//        data_array[i] = usart_getc();
-    //    while(data_array[i]!= 0x00) {
-    //        data_array[i] = usart_getc();
-    //    }
-    
-//        set_timer1(32767);
-//        while(timer_expired != 1){
-//            i++;
-//            data_array[i] = usart_getc();
-//            if(i == 3){
-//                message_length = data_array[3] + 4;
-//            }
-//            if(i >= message_length){
-//                //TURN OFF TIMER HERE
-//                CLEARBIT(T1CONbits.TON);           
-//                break;
-//            } 
-//      
-//    if (timer_expired == 1 ){
-//        CLEARBIT(T1CONbits.TON);
-//        // Do more to go back top
-//    }
-//        };
-//    
-//    crc1 = data_array[1];
-//    crc2 = data_array[2];
-//    int j;
-//    crc = ((uint16_t)crc1 | ((uint16_t)crc2 << 8));
-//    for(j = 4; j < message_length; j++){
-//        calculated_crc = crc_update(calculated_crc,data_array[j]);
-//    }
-// 
-//    if(crc == calculated_crc){
-//        // Data chilling
-//            printf("YOU CHILLING");
-//            // print the failed on the lcd
-//            lcd_locate(0,0);
-//            lcd_clear_row(0);
-//            lcd_printf("Recv fail: %d", failed_sends);
-//            gotoLine(1);
-//            lcd_clear_row(1);
-//            lcd_printf("recv_buf:");
-//            lcd_printf("%d %x %x %d", data_array[0], data_array[1], data_array[2], data_array[3]);
-//            gotoLine(2);
-//            lcd_clear_row(2);
-//            int k;
-//            for(k = 4; k < message_length; k++){
-//                lcd_printf("%d ", data_array[k]);
-//                char c = data_array[k];
-//                message[k-4] = c;
-//            }
-//            gotoLine(3);
-//            lcd_printf("crc: %x crc: %x",calculated_crc, crc);
-//            gotoLine(4);
-//            lcd_printf("str: %s", message);
-//            resetLCD();
-//            lcd_printf("hello");
-//            uart2_send_8(ACK);
-//    }
-//    else{
-//            printf("YOU NOOOTTTTTTT CHILLING");
-//            failed_sends++;
-//            uart2_send_8(NACK);
-//            printf("Failed\n");
-//    }
-//    }
-//    
-    
-    // Questions:
-    // 1. How do we handle the NACK such that we have to resend the message with alot of NACKS or handle it differently and do we need this big while loop
-    // 2. Edge case: how do we handle overflow buffer and what is the wrap around method.
-    // 3. How do we run this together to test lol
+    uint16_t message_length = MSG_MAX_LEN;
+   
+   int i = 0;
+   uart2_init(BAUD_9600);
 
-    
-    
+   while(1){
+       timer_expired = 0;
+       while(uart2_recv(&bufferArray[i]) != 0);
+       if (bufferArray[0] != 0x00){
+           lcd_printf("YOO");
+           uart2_send_8(NACK);
+       }
+       set_timer1(32767);
+       i++;
+       while(1){
+           while(uart2_recv(&bufferArray[i]) != 0);
+           if(i == 3){
+               message_length = bufferArray[3] + 4;
+           }
+           
+           if(i >= message_length){
+               //TURN OFF TIMER HERE
+               CLEARBIT(T1CONbits.TON);           
+               break;
+           } 
+     
+            if (timer_expired == 1 ){
+                CLEARBIT(T1CONbits.TON);
+                continue;
+                // Do more to go back top
+            }
+            i++;
+       };
+       
+  
+   
+   crc1 = bufferArray[1];
+   crc2 = bufferArray[2];
+   int j;
+   crc = ((uint16_t)crc1 | ((uint16_t)crc2 << 8));
+   
+   for(j = 4; j < message_length; j++){
+       calculated_crc = crc_update(calculated_crc,bufferArray[j]);
+   }
+   
+   __C30_UART=1;	
+   lcd_initialize();
+   if(crc == calculated_crc){
+           // print the failed on the lcd
+           lcd_clear();
+           lcd_locate(0,0);
+           lcd_clear_row(0);
+           lcd_printf("Recv fail: %d", failed_sends);
+           gotoLine(1);
+           lcd_clear_row(1);
+           lcd_printf("recv_buf:");
+           lcd_printf("%d %x %x %d", bufferArray[0], bufferArray[1], bufferArray[2], bufferArray[3]);
+           gotoLine(2);
+           lcd_clear_row(2);
+           int k;
+           for(k = 4; k < message_length; k++){
+               lcd_printf("%d ", bufferArray[k]);
+               char c = bufferArray[k];
+               message[k-4] = c;
+           }
+           gotoLine(3);
+           lcd_printf("crc: %x crc: %x",calculated_crc, crc);
+           gotoLine(4);
+           lcd_printf("str: %s", message);
+           resetLCD();
+           uart2_send_8(ACK);
+        }
+   else{
+           failed_sends++;
+           uart2_send_8(NACK);
+        }
+   }    
     return 0;    
     
 }	
