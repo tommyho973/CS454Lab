@@ -30,6 +30,7 @@ inline void uart2_init(uint16_t baud)
     U2MODEbits.BRGH = 0;
     U2BRG = (uint32_t)800000/baud -1;
     U2MODE = 0;
+    
     U2MODEbits.RTSMD = 0;
     U2MODEbits.UEN = 0;
     U2MODE |= 0x00;
@@ -52,24 +53,9 @@ int8_t uart2_recv(uint8_t *data)
     if(U2STAbits.OERR){
         U2STAbits.OERR=0;
     }
-    if(U2STAbits.URXDA == 0){
-//        writetroll = (writetroll + 1) % MSG_MAX_LEN;
-//        if(writetroll != trollreader){
-            *data = U2RXREG & 0x00FF;
-            return 0;
-//        }
+    if(U2STAbits.URXDA){
+       *data = U2RXREG & 0x00FF;
+       return 0;
     }
     return -1;
-}
-
-uint8_t usart_getc(){
-    while(uart2_recv(buffering[writetroll])!= 0);
-    uint8_t return_num;
-//    trollreader = (trollreader + 1) % MSG_MAX_LEN;
-//    if(trollreader != writetroll){
-        return_num = buffering[writetroll];
-        writetroll = (writetroll + 1) % MSG_MAX_LEN;
-//    }
-    return return_num;
-
 }
