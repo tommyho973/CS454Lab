@@ -14,9 +14,9 @@
 #include "lab3.h"
 
 
-uint8_t dataArray[MSG_MAX_LEN];
-int read = -1;
-int write = 0;
+uint8_t buffering[MSG_MAX_LEN];
+int trollreader = 0;
+int writetroll = 0;
 
 inline void uart2_init(uint16_t baud)
 {
@@ -28,7 +28,7 @@ inline void uart2_init(uint16_t baud)
     TRISFbits.TRISF4 = 1; // Check if these are for UART2 as well
     TRISFbits.TRISF5 = 0;
     U2MODEbits.BRGH = 0;
-    U2BRG = (uint32_t)800000 / baud -1;
+    U2BRG = (uint32_t)800000/baud -1;
     U2MODE = 0;
     U2MODEbits.RTSMD = 0;
     U2MODEbits.UEN = 0;
@@ -46,29 +46,30 @@ void uart2_send_8(int8_t data)
     while(!U2STAbits.TRMT);
 }
 
-int8_t uart2_recv(uint8_t* data)
+int8_t uart2_recv(uint8_t *data)
 {
 	/* Implement me please. */
     if(U2STAbits.OERR){
         U2STAbits.OERR=0;
     }
-    if(U2STAbits.URXDA){
-        if(write != read){
+    if(U2STAbits.URXDA == 0){
+//        writetroll = (writetroll + 1) % MSG_MAX_LEN;
+//        if(writetroll != trollreader){
             *data = U2RXREG & 0x00FF;
-            write = (write + 1) % MSG_MAX_LEN;
             return 0;
-        }
+//        }
     }
     return -1;
 }
 
 uint8_t usart_getc(){
-    while(uart2_recv(dataArray[write])!= 0);
-    uint8_t return_num = -1;
-    if(((read + 1) % MSG_MAX_LEN)!= write){
-        read = (read + 1) % MSG_MAX_LEN;
-        return_num = dataArray[read];
-    }
+    while(uart2_recv(buffering[writetroll])!= 0);
+    uint8_t return_num;
+//    trollreader = (trollreader + 1) % MSG_MAX_LEN;
+//    if(trollreader != writetroll){
+        return_num = buffering[writetroll];
+        writetroll = (writetroll + 1) % MSG_MAX_LEN;
+//    }
     return return_num;
 
 }
