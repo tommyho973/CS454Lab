@@ -61,6 +61,7 @@ int main(void)
         timer_expired = 0; 
         calculated_crc = 0;
         failed_sends= 0;
+	message_length = 0; // ADD
         while(1){
             int received = uart2_recv(&start_byte);
             if(received == 0){
@@ -82,7 +83,7 @@ int main(void)
        while(timer_expired != 1){
             int received = uart2_recv(&crc2);
             if(received == 0){
-                if(crc1 != 0){
+                if(crc2 != 0){ //ADD
                     break;
                     
                 }
@@ -92,7 +93,7 @@ int main(void)
         while(timer_expired != 1){
             int received = uart2_recv(&message_length);
             if(received == 0){
-                if(crc1 != 0){
+                if(message_length != 0){ //ADD
 
                     break;
                     
@@ -121,8 +122,10 @@ int main(void)
         
         if (timer_expired == 1){
             CLEARBIT(T1CONbits.TON);
-            uart2_send_8(NACK);    
+            uart2_send_8(NACK);
+	    continue; //ADD
         }
+	    
         clearLCD();
         lcd_locate(0,0);
         lcd_printf("Recv fail: %d\n\r", failed_sends);
@@ -140,9 +143,6 @@ int main(void)
             lcd_printf("%c", message[k]);
         }
         uart2_send_8(ACK);
-
-        
-     
     }
     return 0;
 }	
