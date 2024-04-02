@@ -49,13 +49,28 @@ void uart2_send_8(int8_t data)
 
 int8_t uart2_recv(uint8_t *data)
 {
-	/* Implement me please. */
+    /* Implement me please. */
     if(U2STAbits.OERR){
         U2STAbits.OERR=0;
     }
     if(U2STAbits.URXDA){
-       *data = U2RXREG & 0x00FF;
-       return 0;
+        if(writetroll != trollreader){
+            *data = U2RXREG & 0x00FF;
+            buffering[writetroll] = *data;
+            writetroll = (writetroll + 1) % MSG_MAX_LEN;
+            return 0;
+        }
     }
     return -1;
+}
+
+uint8_t usart_getc(){
+    while(uart2_recv(&buffering[writetroll])!= 0);
+    uint8_t return_num = -1;
+    if((trollreader + 1)% MSG_MAX_LEN != writetroll){
+        return_num = buffering[trollreader];
+        trollreader = (trollreader + 1) % MSG_MAX_LEN;
+    }
+    return return_num;
+
 }

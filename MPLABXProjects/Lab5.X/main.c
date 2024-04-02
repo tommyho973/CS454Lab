@@ -52,7 +52,7 @@ int main(void)
 	lcd_locate(0,0);
     
     lcd_printf("--- Lab 05 ---");
-    gotoLine(2);
+    lcd_locate(1,0);
     
     initialize_buttons();
     
@@ -60,7 +60,6 @@ int main(void)
     touch_init(); // starts ADC for joystick
     set_timer2(4000);
 //    motor_init(7);
-//    motor_init(8);
     
     // Code for the trigger buttons debouncing
     initialize_buttons(); // for triggers
@@ -78,35 +77,157 @@ int main(void)
         __delay_ms(10); //Change back to 50 if need be
         
 // SO IT READS THE VALUES CORRECTLY BUT THE PROBLEM IS SOMETHING RELATED TO HOW WE ARE SAMPLING
-        lcd_clear_row(2);
-        lcd_clear_row(3);
-        gotoLine(2);
         curr = touch_read();
+        lcd_clear_row(2);
+        lcd_locate(1,0);
         lcd_printf("X-max?: %d", curr);
 
         if(BTN1_PRESSED()&&(v2 <.5)&& (v2 != prev)){ //If you know that you have pressed the button, then you can take a snapshot of the x axis max 
             prev = v2;
             lcd_clear_row(2);
-            lcd_clear_row(3);
+            lcd_locate(1,0);
             lcd_printf("X-max: %d", curr);
             break;
         }   
-        if(BTN1_RELEASED()){
-            prev = 1;
-
-        }
     }
+
+    if(BTN1_RELEASED()){
+            prev = 1;
+        }
 
     while(1){ // X -MIN LOOP
+        // Debouncing 
+        uint8_t v1 = B1PORT;
+        __delay_ms(10);
+        uint8_t v2 = B1PORT;
+        __delay_ms(10); //Change back to 50 if need be
         
+        lcd_clear_row(3);
+        lcd_locate(2,0);
+        curr = touch_read();
+        lcd_printf("X-min?: %d", curr);
+
+        if(BTN1_PRESSED()&&(v2 <.5)&& (v2 != prev)){ //If you know that you have pressed the button, then you can take a snapshot of the x axis max 
+            prev = v2;
+            lcd_clear_row(3);
+            lcd_locate(2,0);
+            lcd_printf("X-min: %d", curr);
+            break;
+        }   
     }
-    
+
+    if(BTN1_RELEASED()){
+            prev = 1;
+        }
+
+    touch_select_dim(1); //Select y axis
     while(1) { // Y - MAX LOOP
+        // Debouncing 
+        uint8_t v1 = B1PORT;
+        __delay_ms(10);
+        uint8_t v2 = B1PORT;
+        __delay_ms(10); //Change back to 50 if need be
         
+        lcd_clear_row(4);
+        lcd_locate(3,0);
+        curr = touch_read();
+        lcd_printf("Y-max?: %d", curr);
+
+        if(BTN1_PRESSED()&&(v2 <.5)&& (v2 != prev)){ //If you know that you have pressed the button, then you can take a snapshot of the x axis max 
+            prev = v2;
+            lcd_clear_row(4);
+            lcd_locate(3,0);
+            lcd_printf("Y-max: %d", curr);
+            break;
+        }   
     }
     
+    if(BTN1_RELEASED()){
+            prev = 1;
+        }
+
     while(1) { // Y-min
+        // Debouncing 
+        uint8_t v1 = B1PORT;
+        __delay_ms(10);
+        uint8_t v2 = B1PORT;
+        __delay_ms(10); //Change back to 50 if need be
         
+        lcd_clear_row(5);
+        lcd_locate(4,0);
+        curr = touch_read();
+        lcd_printf("Y-min?: %d", curr);
+
+        if(BTN1_PRESSED()&&(v2 <.5)&& (v2 != prev)){ //If you know that you have pressed the button, then you can take a snapshot of the x axis max 
+            prev = v2;
+            lcd_clear_row(5);
+            lcd_locate(4,0);
+            lcd_printf("Y-min: %d", curr);
+            break;
+        }   
     }
+
+    if(BTN1_RELEASED()){
+            prev = 1;
+        }
+
+    // Move the X motor based on what the X position is
+    motor_init(8);
+    touch_select_dim(0);
+    while(1){
+        uint8_t v1 = B1PORT;
+        __delay_ms(10);
+        uint8_t v2 = B1PORT;
+        __delay_ms(10); //Change back to 50 if need be
+
+        curr = touch_read();
+        duty_cycle; // Math to calculate the duty cycle
+        motor_set_duty(8, duty_cycle);
+        lcd_clear_row(6);
+        lcd_locate(5,0);
+        lcd_printf("PW X?: %d", duty_cycle)
+        
+        if(BTN1_PRESSED()&&(v2 <.5)&& (v2 != prev)){ //If you know that you have pressed the button, then you can take a snapshot of the x axis max 
+            prev = v2;
+            lcd_clear_row(6);
+            lcd_locate(5,0);
+            lcd_printf("PW X: %d", duty_cycle);
+            break;
+        }   
+    }
+
+    if(BTN1_RELEASED()){
+            prev = 1;
+        }
+
+    // Move the Y motor based on what the Y position is
+    motor_init(7);
+    touch_select_dim(1);
+    while(1){
+        uint8_t v1 = B1PORT;
+        __delay_ms(10);
+        uint8_t v2 = B1PORT;
+        __delay_ms(10); //Change back to 50 if need be
+
+        curr = touch_read();
+        duty_cycle; // Math to calculate the duty cycle
+        motor_set_duty(7, duty_cycle);
+        lcd_clear_row(7);
+        lcd_locate(6,0);
+        lcd_printf("PW Y?: %d", duty_cycle)
+        
+        if(BTN1_PRESSED()&&(v2 <.5)&& (v2 != prev)){ //If you know that you have pressed the button, then you can take a snapshot of the x axis max 
+            prev = v2;
+            lcd_clear_row(7);
+            lcd_locate(6,0);
+            lcd_printf("PW Y: %d", duty_cycle);
+            break;
+        }   
+    }
+
+    if(BTN1_RELEASED()){
+            prev = 1;
+        }
+
     return 0;
 }

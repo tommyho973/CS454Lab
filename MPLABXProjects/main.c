@@ -53,24 +53,101 @@ int main(void)
 	/* Q: What is my purpose? */
 	/* A: You pass butter. */
 	/* Q: Oh. My. God. */
-    __C30_UART=1;
-    lcd_initialize();
-    uart2_init(BAUD_9600);
-    lcd_clear();  
-    while(1){
-        timer_expired = 0; 
-        calculated_crc = 0;
-        failed_sends= 0;
-	message_length = 0; // ADD
-        while(1){
-            int received = uart2_recv(&start_byte);
-            if(received == 0){
-                if(start_byte == 0){
-                    resetLCD(); 
-                    set_timer1(32767);
-                    break;
-                }
-            }
+    
+    uint16_t message_length = MSG_BYTES_MSG;
+   
+   int i = 0;
+   uart2_init(BAUD_9600);
+
+   while(1){
+    // Implement the message breakdown with recieves
+
+    // Start byte
+    while(uart2_recv(&start_byte) != 0);
+    if(start_byte != 0x00){
+        failed_sends++;
+        uart2_send_8(NACK);
+        continue;
+    }
+
+    // Start Timer
+    set_timer1(32767);
+
+    // CRC
+    while((uart2_recv(&crc1) != 0) || (timer_expired != 1));
+    if (timer_expired == 1){
+        failed_sends++;
+        uart2_send_8(NACK);
+        continue;
+    }
+    while((uart2_recv(&crc2) != 0) || (timer_expired != 1));
+    if (timer_expired == 1){
+        failed_sends++;
+        uart2_send_8(NACK);
+        continue;
+    }
+
+    // Length
+    while((uart2_recv(&message_length) != 0) || (timer_expired != 1));
+    if (timer_expired == 1){
+        failed_sends++;
+        uart2_send_8(NACK);
+        continue;
+    }
+    // Message
+    for(i = 0; i < message_length; i++){
+        while((uart2_recv(&data_array[i]) != 0) || (timer_expired != 1));
+        if (timer_expired == 1){
+            failed_sends++;
+            break;
+        }
+    }
+
+    if (timer_expired == 1){
+        uart2_send_8(NACK);
+        continue;
+    }
+
+    // Stop Timer
+    CLEARBIT(IEC0bits.TON);
+
+    int j;
+    crc = ((uint16_t)crc1 | ((uint16_t)crc2 << 8));
+
+    // Calculate the crc
+    for(j = 0; j < message_length; j++){
+        calculated_crc = crc_update(calculated_crc, data_array[j]);
+    }
+
+//    __C30_UART=1;	
+
+   if(crc == calculated_crc){
+           // print the failed on the lcd
+            __C30_UART=1;	
+           lcd_initialize();
+           lcd_clear();
+           lcd_locate(0,0);
+           lcd_clear_row(0);
+           lcd_printf("Recv fail: %d", failed_sends);
+           gotoLine(1);
+           lcd_clear_row(1);
+           lcd_printf("recv_buf:");
+           lcd_printf("%d %x %x %d", data_array[0], data_array[1], data_array[2], data_array[3]);
+           gotoLine(2);
+           lcd_clear_row(2);
+           int k;
+           for(k = 4; k < message_length; k++){
+               lcd_printf("%d ", bufferArray[k]);
+               char c = bufferArray[k];
+               message[k-4] = c;
+           }
+           gotoLine(3);
+           lcd_printf("crc: %x crc: %x",calculated_crc, crc);
+           gotoLine(4);
+           lcd_printf("str: %s", message);
+           resetLCD();
+           uart2_send_8(ACK);
+           
         }
        while(timer_expired != 1){
             int received = uart2_recv(&crc1);

@@ -125,6 +125,7 @@ int main(int argc, char* argv[])
         int crc = pc_crc16(str, N);
         
         printf("CRC: %x\n", crc);
+        int ack = -1;
         int ack= -1;
         int attempts = 0;
         
@@ -159,18 +160,11 @@ int main(int argc, char* argv[])
 			//
 			// WRITE ME: Wait for MSG_ACK or MSG_NACK
 			//
-			ssize_t bytesRead = read(ifd,&ackByte,1);
-			while(bytesRead!= 1){
-			  bytesRead = read(ifd,&ackByte,1);
+
+            read(ifd, &ack, sizeof(ack));
+			while(ack != MSG_ACK && ack != MSG_NACK){
+				read(ifd, &ack, sizeof(ack));
 			}
-			if(ackByte == 1){
-			  ack = MSG_ACK;
-			}
-			else{
-			  ack = MSG_NACK;
-			}
-	      //	      printf("YOOYOYOYOOY");
-         
             
 			printf("%s\n", ack ? "ACK" : "NACK, resending");
 		}
