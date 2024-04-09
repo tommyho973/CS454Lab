@@ -94,108 +94,32 @@ int main(void)
     
     lcd_printf("--- Lab 06 ---");
         
-    for(counter = 0; counter < 5; counter++){
+    
         //Bottom Left Corn#include <stdlib.h>er
         // Move the X motor based on what the X position is
-        motor_init(8);
-        touch_select_dim(0);
-        duty_cycle = n90; // -90 degrees
-        motor_set_duty(8, duty_cycle);
+    motor_init(8);
+    touch_select_dim(0);
+    duty_cycle = n90; // -90 degrees
+    motor_set_duty(8, duty_cycle);
 
-        // Move the Y motor based on what the Y position is
-        motor_init(7);
-        touch_select_dim(1);
-        duty_cycle = n90;
-        motor_set_duty(7,duty_cycle);
-        
-        __delay_ms(2000);
-        
-        
+    // Move the Y motor based on what the Y position is
+    motor_init(7);
+    touch_select_dim(1);
+    duty_cycle = n90;
+    motor_set_duty(7,duty_cycle);
+
+    __delay_ms(2000);
+ 
+    for(counter = 0; counter < 5; counter++){
         corner1Y[counter] = touch_read();
         touch_select_dim(0);
         __delay_ms(20);
         corner1X[counter] = touch_read();
-
-        gotoLine(2);
-        lcd_printf("C1: X=%d , Y=%d  ", corner1X[counter], corner1Y[counter]);
-        
-        
-        //Top Right Corner
-        motor_init(8);
-        touch_select_dim(0);
-        duty_cycle = p90; // -90 degrees
-        motor_set_duty(8, duty_cycle);
-
-        // Move the Y motor based on what the Y position is
-        motor_init(7);
         touch_select_dim(1);
-        duty_cycle = n90;
-        motor_set_duty(7,duty_cycle);
-        
-        __delay_ms(2000);
-        
-        
-        corner2Y[counter] = touch_read();
-        touch_select_dim(0);
         __delay_ms(20);
-        corner2X[counter] = touch_read();
-        
-
-        gotoLine(3);
-        lcd_printf("C2: X=%d , Y=%d  ", corner2X[counter], corner2Y[counter]);
-        
-        
-        //Upper Right Corner
-        motor_init(8);
-        touch_select_dim(0);
-        duty_cycle = p90; // -90 degrees
-        motor_set_duty(8, duty_cycle);
-
-        // Move the Y motor based on what the Y position is
-        motor_init(7);
-        touch_select_dim(1);
-        duty_cycle = p90;
-        motor_set_duty(7,duty_cycle);
-        
-        __delay_ms(2000);
-        
-        
-        corner3Y[counter] = touch_read();
-        touch_select_dim(0);
-        __delay_ms(20);
-        corner3X[counter] = touch_read();
-        
-        gotoLine(4);
-        lcd_printf("C3: X=%d , Y=%d  ", corner3X[counter], corner3Y[counter]);
-        
-        
-        
-        //Bottom Right Corner
-        motor_init(8);
-        touch_select_dim(0);
-        duty_cycle = n90; // -90 degrees
-        motor_set_duty(8, duty_cycle);
-
-        // Move the Y motor based on what the Y position is
-        motor_init(7);
-        touch_select_dim(1);
-        duty_cycle = p90;
-        motor_set_duty(7,duty_cycle);
-        
-        __delay_ms(2000);
-        
-        
-        corner4Y[counter] = touch_read();
-        touch_select_dim(0);
-        __delay_ms(20);
-        corner4X[counter] = touch_read();
-        
-
-        gotoLine(5);
-        lcd_printf("C4: X=%d , Y=%d  ", corner4X[counter], corner4Y[counter]);
-    
     }
     
+    counter = 0;
     //Sort the list
     qsort(corner1X, (counter+1), sizeof(uint16_t), comp);
     qsort(corner1Y, (counter+1), sizeof(uint16_t), comp);
@@ -206,6 +130,35 @@ int main(void)
     gotoLine(2);
     lcd_printf("C1: MX=%d , MY=%d    ", median1,median2);
     
+//    gotoLine(2);
+//    lcd_printf("C1: X=%d , Y=%d  ", corner1X[counter], corner1Y[counter]);
+
+
+    //Top Right Corner
+    motor_init(8);
+    touch_select_dim(0);
+    duty_cycle = p90; // -90 degrees
+    motor_set_duty(8, duty_cycle);
+
+    // Move the Y motor based on what the Y position is
+    motor_init(7);
+    touch_select_dim(1);
+    duty_cycle = n90;
+    motor_set_duty(7,duty_cycle);
+
+    __delay_ms(2000);
+
+    for(counter = 0; counter < 5; counter++){
+        corner2Y[counter] = touch_read();
+        touch_select_dim(0);
+        __delay_ms(20);
+        corner2X[counter] = touch_read();
+        touch_select_dim(1);
+        __delay_ms(20);
+    
+    }
+    
+    counter = 0;
     // Do the rest of the corners
     qsort(corner2X, (counter+1), sizeof(uint16_t), comp);
     qsort(corner2Y, (counter+1), sizeof(uint16_t), comp);
@@ -216,6 +169,35 @@ int main(void)
     gotoLine(3);
     lcd_printf("C2: MX=%d , MY=%d    ", median1,median2);
     
+//    gotoLine(3);
+//    lcd_printf("C2: X=%d , Y=%d  ", corner2X[counter], corner2Y[counter]);
+
+
+    //Upper Right Corner
+    motor_init(8);
+    touch_select_dim(0);
+    duty_cycle = p90; // -90 degrees
+    motor_set_duty(8, duty_cycle);
+
+    // Move the Y motor based on what the Y position is
+    motor_init(7);
+    touch_select_dim(1);
+    duty_cycle = p90;
+    motor_set_duty(7,duty_cycle);
+
+    __delay_ms(2000);
+
+    for(counter = 0; counter < 5; counter++){
+        corner3Y[counter] = touch_read();
+        touch_select_dim(0);
+        __delay_ms(20);
+        corner3X[counter] = touch_read();
+        touch_select_dim(1);
+        __delay_ms(20);
+
+    }
+    
+    counter = 0;
     // Corner 3
     qsort(corner3X, (counter+1), sizeof(uint16_t), comp);
     qsort(corner3Y, (counter+1), sizeof(uint16_t), comp);
@@ -226,6 +208,33 @@ int main(void)
     gotoLine(4);
     lcd_printf("C3: MX=%d , MY=%d    ", median1,median2);
     
+//    gotoLine(4);
+//    lcd_printf("C3: X=%d , Y=%d  ", corner3X[counter], corner3Y[counter]);
+
+    
+
+    //Bottom Right Corner
+    motor_init(8);
+    touch_select_dim(0);
+    duty_cycle = n90; // -90 degrees
+    motor_set_duty(8, duty_cycle);
+
+    // Move the Y motor based on what the Y position is
+    motor_init(7);
+    touch_select_dim(1);
+    duty_cycle = p90;
+    motor_set_duty(7,duty_cycle);
+
+    __delay_ms(2000);
+
+    for(counter = 0; counter < 5; counter++){
+        corner4Y[counter] = touch_read();
+        touch_select_dim(0);
+        __delay_ms(20);
+        corner4X[counter] = touch_read();
+        touch_select_dim(1);
+        __delay_ms(20);
+    }
     
     // Corner 4
     qsort(corner4X, (counter+1), sizeof(uint16_t), comp);
@@ -237,8 +246,10 @@ int main(void)
     gotoLine(5);
     lcd_printf("C4: MX=%d , MY=%d    ", median1,median2);
     
-    gotoLine(6);
-    lcd_printf("DONE ALL MEDIANS");
+
+//    gotoLine(5);
+//    lcd_printf("C4: X=%d , Y=%d  ", corner4X[counter], corner4Y[counter]);
+    
     
     __delay_ms(5000);
     
