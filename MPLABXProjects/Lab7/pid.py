@@ -4,6 +4,8 @@ import time
 import numpy as np
 import utils
 import argparse
+from scipy import signal
+
 
 
 @dataclass
@@ -20,8 +22,8 @@ class World:
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--setpoint", type=float, nargs=2, default=(0.0,0.0))
-    parser.add_argument("--kp", type=float, default=0.05) # set these values to tune the PD controller
-    parser.add_argument("--kd", type=float, default=0.05) # set these values to tune the PD controller
+    parser.add_argument("--kp", type=float, default=8) # set these values to tune the PD controller
+    parser.add_argument("--kd", type=float, default=2) # set these values to tune the PD controller
     parser.add_argument("--noise", action="store_true", help="Add noise to the measurements")
     parser.add_argument("--filtered", action="store_true", help="filter the measurements")
     cmd_args = parser.parse_args()
@@ -33,7 +35,19 @@ def parse_args():
 def run_controller(kp, kd, setpoint, noise, filtered, world: World):
     prev_error_x = 0.0
     prev_error_y = 0.0
-
+    
+    N_ord = 2
+    f_cutoff = 10 
+    wn = f_cutoff * 2.0/100 # Nyquist
+    
+    x_in = [0.0]*(N_ord+1)
+    x_out = [0.0]*(N_ord+1)
+    y_in = [0.0]*(N_ord+1)
+    y_out = [0.0]*(N_ord+1)
+    
+    b, a = signal.butter(N_ord, wn, 'low', analog=False)
+    
+    
     def set_plate_angles(theta_x, theta_y):
         p.setJointMotorControl2(world.plate, 1, p.POSITION_CONTROL, targetPosition=np.clip(theta_x, -0.1, 0.1), force=5, maxVelocity=2)
         p.setJointMotorControl2(world.plate, 0, p.POSITION_CONTROL, targetPosition=np.clip(-theta_y, -0.1, 0.1), force=5, maxVelocity=2)
@@ -52,8 +66,8 @@ def run_controller(kp, kd, setpoint, noise, filtered, world: World):
         error_x = setpoint.x - x
         error_y = setpoint.y - y
 
-        delta_error_x = (error_x - prev_error_x)
-        delta_error_y = (error_y - prev_error_y) 
+        delta_error_x = (error_x - prev_error_x) / 0.01
+        delta_error_y = (error_y - prev_error_y) / 0.01
 
         angle_x = (kp) * error_x + (kd) * delta_error_x 
         angle_y = (kp) * error_y + (kd) * delta_error_y
@@ -64,9 +78,27 @@ def run_controller(kp, kd, setpoint, noise, filtered, world: World):
         return angle_x, angle_y
 
 
-    def filter_val(val):
+    def filter_val(val, in1, out1):
         """Implement a filter here, you can use scipy.signal.butter to compute the filter coefficients and then scipy.signal.lfilter to apply the filter.but we recommend you implement it yourself instead of using lfilter because you'll have to do that on the real system later.
         Take a look at the butterworth example written by Renato for inspiration."""
+        
+        # Perform a sample shift from the reverse
+        for i in range(N_ord, 0, -1):
+            in1[i] = in1[i-1]
+            out1[i] = out1[i-1]
+    
+        in1[0] = val
+	
+        val_filtered = 0.0
+	
+        for i in range(0,N_ord+1): 
+            val_filtered += b[i]*in1[i] 
+            if i > 0:
+            	val_filtered -= a[i]*out1[i]
+        
+        out1[0] = val_filtered
+        
+        return val_filtered
         
 
 
@@ -80,10 +112,12 @@ def run_controller(kp, kd, setpoint, noise, filtered, world: World):
         if noise:
             x += utils.noise(t) # the noise added has a frequency between 30 and 50 Hz
             y += utils.noise(t, seed = 43) # so that the noise on y is different than the one on x
+            	
+            
         
         if filtered:
-            x = filter_val(x)
-            y = filter_val(y)
+            x = filter_val(x,x_in,x_out)
+            y = filter_val(y,y_in,y_out)
 
         (angle_x, angle_y) = pd_controller(x, y, kp, kd, setpoint)
         set_plate_angles(angle_x, angle_y)
