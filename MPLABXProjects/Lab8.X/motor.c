@@ -39,7 +39,7 @@ void motor_init(uint8_t chan) {
     }
     else {  
         //setup OC8
-        // Initialize Output Compare Module for the Y SERVO MOTOR
+        // Initialize Output Compare Module for the X SERVO MOTOR
         CLEARBIT(T2CONbits.TON); // Disable Timer
         CLEARBIT(T2CONbits.TCS); // Select internal instruction cycle clock
         CLEARBIT(T2CONbits.TGATE); // Disable Gated Timer mode

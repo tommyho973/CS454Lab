@@ -51,8 +51,6 @@ uint16_t corner2X[5];
 uint16_t corner2Y[5];
 uint16_t corner3X[5];
 uint16_t corner3Y[5];
-uint16_t corner4X[5];
-uint16_t corner4Y[5];
 
 // Order 3
 int N_ord = 3;
@@ -61,29 +59,24 @@ int N_ord = 3;
 double b [4] = {0.0002, 0.0007, 0.0011, 0.0007};
 double a [4] = {1.0000, -3.3441, 4.2389, -2.4093};
 
+//States for the filter in and out for x and y
+double x_values_in[4] = {0,0,0,0};
+double y_values_in[4] = {0,0,0,0};
+double x_values_out[4] = {0,0,0,0};
+double y_values_out[4] = {0,0,0,0};
+
+
 double beta;
 double difference;
+
+// For the prev error for PID
 double curr_difference;
+double prev_difference_x = 0;
+double prev_difference_y =0 ;
+
 double alpha;
 double prop;
 double final;
-
-
-// FORMULA FOR CALCULATING THE ANGLE TO FEED
-
-//        curr_difference = curr - xmin;
-//        beta = curr_difference/difference;
-//        gotoLine(7);
-//        if (beta < 0){
-//            beta = 0;
-//        }
-//        alpha = (.9 + (1.200*beta))*1000;
-//        uint16_t alpha_int = alpha;
-//        
-//        prop = alpha/20000;
-//        final = 4000 -(4000*(prop));
-//        
-//        duty_cycle = final;
 
 
 /* Initial configuration by EE */
@@ -127,7 +120,6 @@ uint16_t findMedian(uint16_t array[], size_t num_elements) {
 }
 
 int find_extreme(void){
-    
     counter = 0;
     lcd_clear();
 	lcd_locate(0,0);
@@ -171,7 +163,6 @@ int find_extreme(void){
     
     xmin = median1;
     ymin = median2;
-    
     
     //Top Right Corner
     motor_init(8);
@@ -247,11 +238,78 @@ int find_extreme(void){
     counter = 0;
     
     ymax = median2;  
-    __delay_ms(50000);
-    
+
     return 0;
 }
 
+int filter_position(double unfiltered, double in_array, double out_array){
+    
+    double filtered = 0.0;
+    
+    // Shift the values
+    for (int i = N_ord; i > 0; i--){
+        in_array[i] = in_array[i-1];
+        out_array[i] = out_array[i-1];
+    }
+
+    for (int i = 0; i < N_ord+1; i++){
+        filtered += b[i]*in_array[i];
+        if (i > 0){
+            filtered -= a[i]*out_array[i];
+        }
+    }
+
+    out_array[0] = filtered;
+
+    return filtered;
+}
+
+int pid_controller(int16_t filtered, int16_t max, int16_t min, int16_t setpoint, double Kp, double Kd, double Ki, int state){
+    
+    double error = 0.0;
+    double prop = 0.0;
+    double integral = 0.0;
+    double derivative = 0.0;
+
+    // Prop Calculation
+    error = setpoint - filtered;
+    prop = Kp*error;
+
+    // Integral Calculation
+    integral += Ki*error;
+
+    // Derivative Calculation
+    if (state == 0){ // X
+        curr_difference = prev_difference_x;
+        derivative = Kd*(error - curr_difference);
+        prev_difference_x = error;
+    }
+    else{ // Y
+        curr_difference = prev_difference_y;
+        derivative = Kd*(error - curr_difference);
+        prev_difference_y = error;
+    }
+    
+    // duty_cycle = prop + integral + derivative;
+
+    // Angle of the motor calculation 
+    difference = max - min;
+    filtered_difference = filtered - min;
+    beta = filtered_difference/difference;
+    
+    if (beta < 0){
+        beta = 0;
+    }
+    alpha = (.9 + (1.200*beta))*1000;
+    uint16_t alpha_int = alpha;
+    
+    prop = alpha/20000;
+    final = 4000 - (4000*(prop));
+    
+    duty_cycle = final;
+    
+    return 0;
+}
 
 int main(void)
 {	
@@ -269,16 +327,30 @@ int main(void)
 //    timer_init(10000); // This is to set to 50 ms for the target
     
     lcd_clear()
+	lcd_locate(0,0);
+    lcd_printf("--- Lab 08 ---");
     
     while(1){
-//        touch_select_dim(1); // y
-//        
-//        touch_select_dim(0); // x
-//        __delay_ms(20);
-//        curr = touch_read();
-//
-//        gotoLine(3);
-//        lcd_printf("X: %d  ", curr);
+
+        // X MOTOR
+        motor_init(8);
+        touch_select_dim(0);
+        curr = touch_read();
+        curr = filter_position(curr, x_values_in, x_values_out);
+        pid_controller(curr, xmax, xmin, x_setpoint, Kp_x, Kd_x, Ki_x,0);
+        motor_set_duty(8,duty_cycle);
+        
+        // Y MOTOR
+        motor_init(7);
+        touch_select_dim(1);
+        curr = touch_read();
+        curr = filter_position(curr, y_values_in, y_values_out);
+        pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
+        motor_set_duty(7,duty_cycle);
+        
+        __delay_ms(50);
+
+        
     }
     
     return 0;
