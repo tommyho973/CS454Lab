@@ -17,6 +17,9 @@ uint8_t chan = 7;
 int16_t duty_cycle = 0;
 uint8_t counter;
 int16_t curr = 0;
+int16_t poss_x;
+int16_t poss_y;
+
 
 // Hardcoded for X VALUES NOT SET RIGHT 
 double Kp_x = 0.8;
@@ -29,8 +32,8 @@ double Kd_y = 0.2;
 double Ki_y = 0.0;
 
 // Middlepoint for the setpoint
-int16_t x_setpoint = 1570;
-int16_t y_setpoint = 1490;
+int16_t x_setpoint; //1570;
+int16_t y_setpoint; //1490;
 
 //Extreme values
 int16_t xmax = 0;
@@ -54,6 +57,12 @@ uint16_t corner3Y[5];
 
 // Order 3
 int N_ord = 3;
+
+// Cut off frequency
+int fc = 5;
+
+// Sampling frequency
+double fs = (fc *2)/50;
 
 //Coefficient values CHANGE THE VALUES, FIND THE CORRECT ONES
 double b [4] = {0.0002, 0.0007, 0.0011, 0.0007};
@@ -93,9 +102,27 @@ _FWDT(FWDTEN_OFF);
 _FGS(GCP_OFF); 
 
 
-void __attribute__((__interrupt__)) _T2Interrupt( void )
+void __attribute__((__interrupt__)) _T2Interrupt( void ) // Might need to change to timer 3
 {
     /* Interrupt Service Routine code goes here */
+    
+    // X MOTOR
+    motor_init(8);
+    touch_select_dim(0);
+    curr = touch_read();
+    poss_X = curr;
+    curr = filter_position(curr, x_values_in, x_values_out);
+    pid_controller(curr, xmax, xmin, x_setpoint, Kp_x, Kd_x, Ki_x,0);
+    motor_set_duty(8,duty_cycle);
+    
+    // // Y MOTOR
+    // motor_init(7);
+    // touch_select_dim(1);
+    // curr = touch_read();
+    // poss_Y = curr;
+    // curr = filter_position(curr, y_values_in, y_values_out);
+    // pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
+    // motor_set_duty(7,duty_cycle);
 
     IFS0bits.T2IF = 0; // Clear Timer 2 interrupt flag
 }
@@ -239,6 +266,10 @@ int find_extreme(void){
     
     ymax = median2;  
 
+    //Middle point
+    x_setpoint = (xmax + xmin)/2;
+    y_setpoint = (ymax + ymin)/2;
+
     return 0;
 }
 
@@ -270,13 +301,14 @@ int pid_controller(int16_t filtered, int16_t max, int16_t min, int16_t setpoint,
     double prop = 0.0;
     double integral = 0.0;
     double derivative = 0.0;
+    double addition = 0.0;
 
     // Prop Calculation
     error = setpoint - filtered;
     prop = Kp*error;
 
     // Integral Calculation
-    integral += Ki*error;
+    integral = Ki*error;
 
     // Derivative Calculation
     if (state == 0){ // X
@@ -290,23 +322,13 @@ int pid_controller(int16_t filtered, int16_t max, int16_t min, int16_t setpoint,
         prev_difference_y = error;
     }
     
-    // duty_cycle = prop + integral + derivative;
+    addition = prop + integral + derivative;
 
-    // Angle of the motor calculation 
-    difference = max - min;
-    filtered_difference = filtered - min;
-    beta = filtered_difference/difference;
+    // Duty Cycle Calculation
+    addition = addition * 120; // 120 is the difference from 0 degree to 90 or -90 degrees
+    addition = addition + 3700; 
     
-    if (beta < 0){
-        beta = 0;
-    }
-    alpha = (.9 + (1.200*beta))*1000;
-    uint16_t alpha_int = alpha;
-    
-    prop = alpha/20000;
-    final = 4000 - (4000*(prop));
-    
-    duty_cycle = final;
+    duty_cycle = addition;
     
     return 0;
 }
@@ -319,9 +341,7 @@ int main(void)
 	lcd_locate(0,0);
   
     lcd_printf("--- Lab 08 ---");
-    
     touch_init();
-    
     find_extreme(); //finds the extremes of x and y, useful used with the setpoint 
     
 //    timer_init(10000); // This is to set to 50 ms for the target
@@ -332,22 +352,16 @@ int main(void)
     
     while(1){
 
-        // X MOTOR
-        motor_init(8);
-        touch_select_dim(0);
-        curr = touch_read();
-        curr = filter_position(curr, x_values_in, x_values_out);
-        pid_controller(curr, xmax, xmin, x_setpoint, Kp_x, Kd_x, Ki_x,0);
-        motor_set_duty(8,duty_cycle);
-        
-        // Y MOTOR
-        motor_init(7);
-        touch_select_dim(1);
-        curr = touch_read();
-        curr = filter_position(curr, y_values_in, y_values_out);
-        pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
-        motor_set_duty(7,duty_cycle);
-        
+        // Print the Kp, Kd, Ki values
+        gotoLine(1);
+        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
+        gotoLine(2);
+        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
+        gotoLine(3);
+        lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
+        gotoLine(4);
+        lcd_printf("PX: %d, PY: %d     ", poss_x, poss_y);
+
         __delay_ms(50);
 
         
