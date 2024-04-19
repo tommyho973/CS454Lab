@@ -1,6 +1,8 @@
 #include <p33Fxxxx.h>
 //do not change the order of the following 3 definitions
 #define FCY 12800000UL 
+#define FC 25
+#define FS (FC * 2)/50
 #include <stdio.h>
 #include <libpic30.h>
 #include <uart.h>
@@ -17,8 +19,8 @@ uint8_t chan = 7;
 int16_t duty_cycle = 0;
 uint8_t counter;
 int16_t curr = 0;
-int16_t poss_x;
-int16_t poss_y;
+int16_t poss_X;
+int16_t poss_Y;
 
 
 // Hardcoded for X VALUES NOT SET RIGHT 
@@ -58,12 +60,6 @@ uint16_t corner3Y[5];
 // Order 3
 int N_ord = 3;
 
-// Cut off frequency
-int fc = 5;
-
-// Sampling frequency
-double fs = (fc *2)/50;
-
 //Coefficient values CHANGE THE VALUES, FIND THE CORRECT ONES
 double b [4] = {0.0002, 0.0007, 0.0011, 0.0007};
 double a [4] = {1.0000, -3.3441, 4.2389, -2.4093};
@@ -73,7 +69,6 @@ double x_values_in[4] = {0,0,0,0};
 double y_values_in[4] = {0,0,0,0};
 double x_values_out[4] = {0,0,0,0};
 double y_values_out[4] = {0,0,0,0};
-
 
 double beta;
 double difference;
@@ -273,17 +268,18 @@ int find_extreme(void){
     return 0;
 }
 
-int filter_position(double unfiltered, double in_array, double out_array){
+int filter_position(double unfiltered, double in_array[], double out_array[]){
     
     double filtered = 0.0;
     
     // Shift the values
-    for (int i = N_ord; i > 0; i--){
+    int i;
+    for (i = N_ord; i > 0; i--){
         in_array[i] = in_array[i-1];
         out_array[i] = out_array[i-1];
     }
 
-    for (int i = 0; i < N_ord+1; i++){
+    for (i = 0; i < N_ord+1; i++){
         filtered += b[i]*in_array[i];
         if (i > 0){
             filtered -= a[i]*out_array[i];
@@ -360,7 +356,7 @@ int main(void)
         gotoLine(3);
         lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
         gotoLine(4);
-        lcd_printf("PX: %d, PY: %d     ", poss_x, poss_y);
+        lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
 
         __delay_ms(50);
 
