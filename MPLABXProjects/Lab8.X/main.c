@@ -16,21 +16,21 @@
 #include "timer.h"
 
 uint8_t chan = 7;
-int16_t duty_cycle = 0;
+int duty_cycle = 0;
 uint8_t counter;
-int16_t curr = 0;
-int16_t poss_X;
-int16_t poss_Y;
+double curr = 0;
+int poss_X;
+int poss_Y;
 
 
 // Hardcoded for X VALUES NOT SET RIGHT 
-double Kp_x = 0.8;
-double Kd_x = 0.2;
+double Kp_x = 0.035;
+double Kd_x = 0.0;
 double Ki_x = 0.0;
 
 // Hardcoded for Y VALUES NOT SET RIGHT
 double Kp_y = 0.8;
-double Kd_y = 0.2;
+double Kd_y = 0.0;
 double Ki_y = 0.0;
 
 // Middlepoint for the setpoint
@@ -57,18 +57,19 @@ uint16_t corner2Y[5];
 uint16_t corner3X[5];
 uint16_t corner3Y[5];
 
+
 // Order 3
 int N_ord = 3;
 
 //Coefficient values CHANGE THE VALUES, FIND THE CORRECT ONES
-double b [4] = {0.0002, 0.0007, 0.0011, 0.0007};
-double a [4] = {1.0000, -3.3441, 4.2389, -2.4093};
+double b [4] = {0.09853116, 0.29559348, 0.29559348, 0.09853116};
+double a [4] = { 1, -0.57724052,  0.42178705, -0.05629724};
 
 //States for the filter in and out for x and y
-double x_values_in[4] = {0,0,0,0};
-double y_values_in[4] = {0,0,0,0};
-double x_values_out[4] = {0,0,0,0};
-double y_values_out[4] = {0,0,0,0};
+static double x_values_in[4] = {0,0,0,0};
+static double y_values_in[4] = {0,0,0,0};
+static double x_values_out[4] = {0,0,0,0};
+static double y_values_out[4] = {0,0,0,0};
 
 double beta;
 double difference;
@@ -97,11 +98,12 @@ _FWDT(FWDTEN_OFF);
 _FGS(GCP_OFF); 
 
 
-void __attribute__((__interrupt__)) _T2Interrupt( void ) // Might need to change to timer 3
+void __attribute__((__interrupt__)) _T1Interrupt(void) // Might need to change to timer 3
 {
     /* Interrupt Service Routine code goes here */
     
     // X MOTOR
+
     motor_init(8);
     touch_select_dim(0);
     curr = touch_read();
@@ -119,7 +121,7 @@ void __attribute__((__interrupt__)) _T2Interrupt( void ) // Might need to change
     // pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
     // motor_set_duty(7,duty_cycle);
 
-    IFS0bits.T2IF = 0; // Clear Timer 2 interrupt flag
+    IFS0bits.T1IF = 0; // Clear Timer 2 interrupt flag
 }
 
 int comp (const void * elem1, const void * elem2) 
@@ -264,8 +266,9 @@ int find_extreme(void){
     //Middle point
     x_setpoint = (xmax + xmin)/2;
     y_setpoint = (ymax + ymin)/2;
-
+    
     return 0;
+    
 }
 
 int filter_position(double unfiltered, double in_array[], double out_array[]){
@@ -278,7 +281,7 @@ int filter_position(double unfiltered, double in_array[], double out_array[]){
         in_array[i] = in_array[i-1];
         out_array[i] = out_array[i-1];
     }
-
+    in_array[0] = unfiltered;
     for (i = 0; i < N_ord+1; i++){
         filtered += b[i]*in_array[i];
         if (i > 0){
@@ -287,44 +290,75 @@ int filter_position(double unfiltered, double in_array[], double out_array[]){
     }
 
     out_array[0] = filtered;
-
+    
+ 
     return filtered;
 }
 
-int pid_controller(int16_t filtered, int16_t max, int16_t min, int16_t setpoint, double Kp, double Kd, double Ki, int state){
+int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, double Kp, double Kd, double Ki, int state){
     
     double error = 0.0;
     double prop = 0.0;
+    double prop2 = 0.0;
+    double prop3 = 0.0;
     double integral = 0.0;
     double derivative = 0.0;
     double addition = 0.0;
+    double Kpmin = Kp * (setpoint -min);
+    double Kpmax = Kp * (setpoint -max);
+
+    int16_t filtered_r = filtered;
 
     // Prop Calculation
     error = setpoint - filtered;
+    
+    gotoLine(3);
+    lcd_printf("setpoint: %d   ",setpoint );  
+    
+    gotoLine(4);
+    lcd_printf("filt:%.3f      ",filtered);  
+    
     prop = Kp*error;
-
+    
+    gotoLine(5);
+    lcd_printf("%.3f", prop);
+    //double normalized = (Kpmax - prop)/(Kpmax - Kpmin);
+//    if(normalized < 0){
+//        normalized = 0;
+//    }
+//    if(normalized > 1){
+//        normalized = 1;
+//    }
+//    normalized = (.9 + 1.2 *normalized) * 1000;
+//    normalized = normalized / 20000;
+    
     // Integral Calculation
-    integral = Ki*error;
+    integral += Ki*error;
 
     // Derivative Calculation
     if (state == 0){ // X
         curr_difference = prev_difference_x;
-        derivative = Kd*(error - curr_difference);
+        derivative = Kd*((error - curr_difference)/50000);
         prev_difference_x = error;
     }
     else{ // Y
         curr_difference = prev_difference_y;
-        derivative = Kd*(error - curr_difference);
+        derivative = Kd*((error - curr_difference)/50000);
         prev_difference_y = error;
     }
     
-    addition = prop + integral + derivative;
+    addition = addition + integral + derivative;
+    
 
     // Duty Cycle Calculation
-    addition = addition * 120; // 120 is the difference from 0 degree to 90 or -90 degrees
-    addition = addition + 3700; 
-    
-    duty_cycle = addition;
+    gotoLine(6);
+    lcd_printf("Addition: %.3f", addition);
+    duty_cycle = addition;//(4000-4000 * normalized);
+    gotoLine(2);
+    lcd_printf("Duty Cycle %d", duty_cycle);
+//    gotoLine(5);
+//    lcd_printf("%.3f %d",addition, duty_cycle );
+
     
     return 0;
 }
@@ -336,29 +370,28 @@ int main(void)
 	lcd_clear();
 	lcd_locate(0,0);
   
+       
     lcd_printf("--- Lab 08 ---");
     touch_init();
     find_extreme(); //finds the extremes of x and y, useful used with the setpoint 
     
-//    timer_init(10000); // This is to set to 50 ms for the target
-    
+     // This is to set to 50 ms for the target
     lcd_clear()
 	lcd_locate(0,0);
     lcd_printf("--- Lab 08 ---");
-    
+    set_timer1(1638);
     while(1){
-
-        // Print the Kp, Kd, Ki values
-        gotoLine(1);
-        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
-        gotoLine(2);
-        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
-        gotoLine(3);
-        lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
-        gotoLine(4);
-        lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
-
-        __delay_ms(50);
+//        // Print the Kp, Kd, Ki values
+//        gotoLine(1);
+//        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
+//        gotoLine(2);
+//        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
+//        gotoLine(3);
+//        lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
+//        gotoLine(4);
+//        lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
+//
+//        __delay_ms(50);
 
         
     }
