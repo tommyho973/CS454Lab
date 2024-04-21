@@ -24,7 +24,7 @@ int poss_Y;
 
 
 // Hardcoded for X VALUES NOT SET RIGHT 
-double Kp_x = 0.035;
+double Kp_x = 0.8;
 double Kd_x = 0.0;
 double Ki_x = 0.0;
 
@@ -304,16 +304,12 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     double integral = 0.0;
     double derivative = 0.0;
     double addition = 0.0;
-    double Kpmin = Kp * (setpoint -min);
-    double Kpmax = Kp * (setpoint -max);
 
-    int16_t filtered_r = filtered;
-
+    
     // Prop Calculation
     error = setpoint - filtered;
-    
-    gotoLine(3);
-    lcd_printf("setpoint: %d   ",setpoint );  
+    double thetamax = Kp * (setpoint - max);
+    double thetamin = Kp * (setpoint - min);
     
     gotoLine(4);
     lcd_printf("filt:%.3f      ",filtered);  
@@ -322,16 +318,7 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     
     gotoLine(5);
     lcd_printf("%.3f", prop);
-    //double normalized = (Kpmax - prop)/(Kpmax - Kpmin);
-//    if(normalized < 0){
-//        normalized = 0;
-//    }
-//    if(normalized > 1){
-//        normalized = 1;
-//    }
-//    normalized = (.9 + 1.2 *normalized) * 1000;
-//    normalized = normalized / 20000;
-    
+
     // Integral Calculation
     integral += Ki*error;
 
@@ -347,17 +334,24 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
         prev_difference_y = error;
     }
     
-    addition = addition + integral + derivative;
+    addition = prop + integral + derivative;
+    double angle = (addition - thetamax)/(thetamin - thetamax) * 1200 + 900;
+    if(angle < 900){
+        angle = 900;
+    }
+    if(angle > 2100){
+        angle = 2100;
+    }
     
-
+    angle = angle/20000;
+    duty_cycle = 4000 - (4000 * angle);
     // Duty Cycle Calculation
     gotoLine(6);
-    lcd_printf("Addition: %.3f", addition);
-    duty_cycle = addition;//(4000-4000 * normalized);
+    lcd_printf("Addition: %.3f  ", angle);
+    
     gotoLine(2);
-    lcd_printf("Duty Cycle %d", duty_cycle);
-//    gotoLine(5);
-//    lcd_printf("%.3f %d",addition, duty_cycle );
+    lcd_printf("Duty Cycle %d  ", duty_cycle);
+
 
     
     return 0;
