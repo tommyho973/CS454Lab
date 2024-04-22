@@ -21,6 +21,7 @@ uint8_t counter;
 double curr = 0;
 int poss_X;
 int poss_Y;
+int state_sample = 0;
 
 
 // Hardcoded for X VALUES NOT SET RIGHT 
@@ -101,29 +102,32 @@ _FWDT(FWDTEN_OFF);
 _FGS(GCP_OFF); 
 
 
-void __attribute__((__interrupt__)) _T1Interrupt(void) // Might need to change to timer 3
+void __attribute__((__interrupt__)) _T1Interrupt(void) // Fire every 25 ms (25 for x and 25 for y)
 {
     /* Interrupt Service Routine code goes here */
     
     // X MOTOR
-
-    motor_init(8);
-    touch_select_dim(0);
-    curr = touch_read();
-    poss_X = curr;
-    curr = filter_position(curr, x_values_in, x_values_out);
-    pid_controller(curr, xmax, xmin, x_setpoint, Kp_x, Kd_x, Ki_x,0);
-    motor_set_duty(8,duty_cycle);
-    
+    if (state_sample == 0){
+        motor_init(8);
+        touch_select_dim(0);
+        curr = touch_read();
+        poss_X = curr;
+        curr = filter_position(curr, x_values_in, x_values_out);
+        pid_controller(curr, xmax, xmin, x_setpoint, Kp_x, Kd_x, Ki_x,0);
+        motor_set_duty(8,duty_cycle);
+        state_sample = !state_sample;
+    }
+    else{
     // // Y MOTOR
-    // motor_init(7);
-    // touch_select_dim(1);
-    // curr = touch_read();
-    // poss_Y = curr;
-    // curr = filter_position(curr, y_values_in, y_values_out);
-    // pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
-    // motor_set_duty(7,duty_cycle);
-
+        // motor_init(7);
+        // touch_select_dim(1);
+        // curr = touch_read();
+        // poss_Y = curr;
+        // curr = filter_position(curr, y_values_in, y_values_out);
+        // pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
+        // motor_set_duty(7,duty_cycle);
+        state_sample = !state_sample;
+    }
     IFS0bits.T1IF = 0; // Clear Timer 2 interrupt flag
 }
 
@@ -341,6 +345,7 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     }
     
     addition = prop + integral + derivative;
+
     double angle = (addition - thetamax)/(thetamin - thetamax) * 1200 + 900;
     if(angle < 900){
         angle = 900;
@@ -350,7 +355,7 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     }
     
     angle = angle/20000;
-    duty_cycle = 4000 - (4000 * angle);
+    duty_cycle = 4000 - (4000 * angle);a
     // Duty Cycle Calculation
     gotoLine(6);
     lcd_printf("Addition: %.3f  ", angle);
@@ -358,8 +363,6 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     gotoLine(2);
     lcd_printf("Duty Cycle %d  ", duty_cycle);
 
-
-    
     return 0;
 }
 
@@ -379,19 +382,47 @@ int main(void)
     lcd_clear()
 	lcd_locate(0,0);
     lcd_printf("--- Lab 08 ---");
-    set_timer1(1638);
+    state_sample = 0;
+    set_timer1(1638/2); // 25 ms
+
+    gotoLine(1);
+    lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
+    gotoLine(2);
+    lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
+    gotoLine(3);
+    lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
+    gotoLine(4);
+    lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
+
     while(1){
-//        // Print the Kp, Kd, Ki values
-//        gotoLine(1);
-//        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
-//        gotoLine(2);
-//        lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
-//        gotoLine(3);
-//        lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
-//        gotoLine(4);
-//        lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
-//
-//        __delay_ms(50);
+        // Print the Kp, Kd, Ki values but only the number values 
+        // lcd_loacte(0,3);
+        // lcd_printf("%.2f", Kp_x);
+        // lcd_loacte(0,6);
+        // lcd_printf("%.2f", Kd_x);
+        // lcd_loacte(0,9);
+        // lcd_printf("%.2f", Ki_x);
+        
+        // lcd_loacte(1,3);
+        // lcd_printf("%.2f", Kp_y);
+        // lcd_loacte(1,6);
+        // lcd_printf("%.2f", Kd_y);
+        // lcd_loacte(1,9);
+        // lcd_printf("%.2f", Ki_y);
+        
+        // // Print the setpoints
+        // lcd_loacte(2,5);
+        // lcd_printf("%d", x_setpoint);
+        // lcd_loacte(2,12);
+        // lcd_printf("%d", y_setpoint);
+
+        // // Print the current position
+        // lcd_loacte(3,4);
+        // lcd_printf("%d", poss_X);
+        // lcd_loacte(3,8);
+        // lcd_printf("%d", poss_Y);
+        
+    //    __delay_ms(50);
 
         
     }
