@@ -82,6 +82,9 @@ double prev_difference_y =0 ;
 double alpha;
 double prop;
 double final;
+double thetamax_int = 0.0;
+double thetamin_int = 0.0;
+double integral = 0.0;
 
 
 /* Initial configuration by EE */
@@ -299,12 +302,8 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     
     double error = 0.0;
     double prop = 0.0;
-    double prop2 = 0.0;
-    double prop3 = 0.0;
-    double integral = 0.0;
     double derivative = 0.0;
     double addition = 0.0;
-
     
     // Prop Calculation
     error = setpoint - filtered;
@@ -320,9 +319,16 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     lcd_printf("%.3f", prop);
 
     // Integral Calculation
+    thetamax_int += Ki * (setpoint - max);
+    thetamin_int += Ki * (setpoint - min);
     integral += Ki*error;
 
+    thetamax = thetamax_int;
+    thetamin = thetamin_int;
+
     // Derivative Calculation
+    thetamax = Kd * (setpoint - max);
+    thetamin = Kd * (setpoint - min);
     if (state == 0){ // X
         curr_difference = prev_difference_x;
         derivative = Kd*((error - curr_difference)/50000);
