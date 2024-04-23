@@ -346,7 +346,15 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     
     addition = prop + integral + derivative;
 
-    double angle = (addition - thetamax)/(thetamin - thetamax) * 1200 + 900;
+    double top = thetamax - thetamin;
+    double bottom = 0.0;
+    addition = addition - thetamin;
+
+    //Shifts the values
+
+    // Angle Calculation
+    double angle = (addition)/(top-bottom) * 1200 + 900;
+    
     if(angle < 900){
         angle = 900;
     }
@@ -354,11 +362,12 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
         angle = 2100;
     }
     
-    angle = angle/20000;
-    duty_cycle = 4000 - (4000 * angle);a
-    // Duty Cycle Calculation
     gotoLine(6);
     lcd_printf("Addition: %.3f  ", angle);
+    
+    angle = angle/20000;
+    duty_cycle = 4000 - (4000 * angle);
+    // Duty Cycle Calculation
     
     gotoLine(2);
     lcd_printf("Duty Cycle %d  ", duty_cycle);
@@ -378,7 +387,7 @@ int main(void)
     touch_init();
     find_extreme(); //finds the extremes of x and y, useful used with the setpoint 
     
-     // This is to set to 50 ms for the target
+     // This is to set to 25 ms for the target that can switch between states for x and y
     lcd_clear()
 	lcd_locate(0,0);
     lcd_printf("--- Lab 08 ---");
