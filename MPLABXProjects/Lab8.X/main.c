@@ -23,16 +23,16 @@ int poss_X;
 int poss_Y;
 int state_sample = 0;
 
-
+// kp: .8 kd: .3 ki: 0.006
 // Hardcoded for X VALUES NOT SET RIGHT 
 double Kp_x = 0.8;
-double Kd_x = 0.0;
-double Ki_x = 0.0;
+double Kd_x = 0.3;
+double Ki_x = 0.006;
 
 // Hardcoded for Y VALUES NOT SET RIGHT
 double Kp_y = 0.8;
-double Kd_y = 0.0;
-double Ki_y = 0.0;
+double Kd_y = 0.3;
+double Ki_y = 0.006;
 
 // Middlepoint for the setpoint
 int16_t x_setpoint; //1570;
@@ -83,9 +83,16 @@ double prev_difference_y =0 ;
 double alpha;
 double prop;
 double final;
-double thetamax_int = 0.0;
-double thetamin_int = 0.0;
+
+double thetamax_int_x = 0.0;
+double thetamin_int_x = 0.0;
+
+double thetamax_int_y = 0.0;
+double thetamin_int_y = 0.0;
+
 double integral = 0.0;
+double integral_x = 0.0;
+double integral_y = 0.0;
 
 
 /* Initial configuration by EE */
@@ -118,17 +125,17 @@ void __attribute__((__interrupt__)) _T1Interrupt(void) // Fire every 25 ms (25 f
         state_sample = !state_sample;
     }
     else{
-    // // Y MOTOR
-        // motor_init(7);
-        // touch_select_dim(1);
-        // curr = touch_read();
-        // poss_Y = curr;
-        // curr = filter_position(curr, y_values_in, y_values_out);
-        // pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
-        // motor_set_duty(7,duty_cycle);
+     // Y MOTOR
+//         motor_init(7);
+//         touch_select_dim(1);
+//         curr = touch_read();
+//         poss_Y = curr;
+//         curr = filter_position(curr, y_values_in, y_values_out);
+//         pid_controller(curr, ymax, ymin, y_setpoint, Kp_y, Kd_y, Ki_y,1);
+//         motor_set_duty(7,duty_cycle);
         state_sample = !state_sample;
     }
-    IFS0bits.T1IF = 0; // Clear Timer 2 interrupt flag
+    IFS0bits.T1IF = 0; // Clear Timer 1 interrupt flag
 }
 
 int comp (const void * elem1, const void * elem2) 
@@ -263,7 +270,7 @@ int find_extreme(void){
     //Print the medians for corner 3
     median1 = findMedian(corner3X,counter+1);
     median2 = findMedian(corner3Y,counter+1);
-    gotoLine(4);
+    gotoLine(4);        integral = integral_x;
     lcd_printf("C3: MX=%d , MY=%d    ", median1,median2);
     
     counter = 0;
@@ -314,21 +321,33 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     double thetamax = Kp * (setpoint - max);
     double thetamin = Kp * (setpoint - min);
     
-    gotoLine(4);
-    lcd_printf("filt:%.3f      ",filtered);  
+    //gotoLine(4);
+    //lcd_printf("filt:%.3f      ",filtered);  
     
     prop = Kp*error;
     
-    gotoLine(5);
-    lcd_printf("%.3f", prop);
+    //gotoLine(5);
+    //lcd_printf("%.3f", prop);
 
     // Integral Calculation
-    thetamax_int += Ki * (setpoint - max);
-    thetamin_int += Ki * (setpoint - min);
-    integral += Ki*error;
-
-    thetamax += thetamax_int;
-    thetamin += thetamin_int;
+    if(state == 0 ){
+        thetamax_int_x += Ki * (setpoint - max);
+        thetamin_int_x += Ki * (setpoint - min);
+        integral_x += Ki*error;
+        
+        thetamax += thetamax_int_x;
+        thetamin += thetamin_int_x;
+        integral = integral_x;
+    }
+    else {
+        thetamax_int_y += Ki * (setpoint - max);
+        thetamin_int_y += Ki * (setpoint - min);
+        integral_y += Ki*error;
+        
+        thetamax += thetamax_int_y;
+        thetamin += thetamin_int_y;  
+        integral = integral_y;    
+    }
 
     // Derivative Calculation
     thetamax += Kd * (setpoint - max);
@@ -348,7 +367,12 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
 
     //Shifts the values
     double top = 0.0;
-    double bottom = thetamax - thetamin;
+    double bottom = thetamin - thetamax;
+    gotoLine(3);
+    lcd_printf("ThetaMax: %.3f   ",thetamax);
+    gotoLine(4);
+    lcd_printf("ThetaMin %.3f   ", thetamin);
+    
     addition = addition - thetamax;
 
     // Angle Calculation
@@ -393,14 +417,14 @@ int main(void)
     state_sample = 0;
     set_timer1(1638/2); // 25 ms
 
-    gotoLine(1);
-    lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
-    gotoLine(2);
-    lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
-    gotoLine(3);
-    lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
-    gotoLine(4);
-    lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
+    //gotoLine(1);
+    //lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_x, Kd_x, Ki_x);
+    //gotoLine(2);
+    //lcd_printf("Kp: %.2f, Kd: %.2f, Ki: %.2f    ", Kp_y, Kd_y, Ki_y);
+    //gotoLine(3);
+    //lcd_printf("SetX: %d, SetY: %d     ", x_setpoint, y_setpoint);
+    //gotoLine(4);
+    //lcd_printf("PX: %d, PY: %d     ", poss_X, poss_Y);
 
     while(1){
         // Print the Kp, Kd, Ki values but only the number values 
