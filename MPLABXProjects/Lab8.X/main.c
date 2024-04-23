@@ -347,12 +347,12 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     addition = prop + integral + derivative;
 
     //Shifts the values
-    double top = thetamax - thetamin;
-    double bottom = 0.0;
-    addition = addition - thetamin;
+    double top = 0.0;
+    double bottom = thetamax - thetamin;
+    addition = addition - thetamax;
 
     // Angle Calculation
-    double angle = (addition)/(top-bottom) * 1200 + 900;
+    double angle = (addition)/(bottom-top) * 1200 + 900;
     
     if(angle < 900){
         angle = 900;
