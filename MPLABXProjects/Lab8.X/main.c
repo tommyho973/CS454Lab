@@ -327,12 +327,12 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     thetamin_int += Ki * (setpoint - min);
     integral += Ki*error;
 
-    thetamax = thetamax_int;
-    thetamin = thetamin_int;
+    thetamax += thetamax_int;
+    thetamin += thetamin_int;
 
     // Derivative Calculation
-    thetamax = Kd * (setpoint - max);
-    thetamin = Kd * (setpoint - min);
+    thetamax += Kd * (setpoint - max);
+    thetamin += Kd * (setpoint - min);
     if (state == 0){ // X
         curr_difference = prev_difference_x;
         derivative = Kd*((error - curr_difference)/50000);
@@ -346,11 +346,10 @@ int pid_controller(double filtered, int16_t max, int16_t min, int16_t setpoint, 
     
     addition = prop + integral + derivative;
 
+    //Shifts the values
     double top = thetamax - thetamin;
     double bottom = 0.0;
     addition = addition - thetamin;
-
-    //Shifts the values
 
     // Angle Calculation
     double angle = (addition)/(top-bottom) * 1200 + 900;
